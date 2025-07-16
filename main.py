@@ -16,8 +16,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from fastapi.staticfiles import StaticFiles  # ⬅️ IMPORTACIÓN NECESARIA
+
 # Configurar FastAPI
 app = FastAPI()
+
+# ⬇️ ESTA LÍNEA MONTA LA CARPETA STATIC
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
