@@ -20,19 +20,39 @@
       --gradient-primary: linear-gradient(90deg, #744098 0%, #384C81 100%);
     }
 
-    body {
-      background-color: var(--color-white);
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
       font-family: 'Montserrat', sans-serif;
+      background-color: var(--color-white);
+    }
+
+    body > main {
+      flex: 1 0 auto;
+    }
+
+    footer.footer {
+      flex-shrink: 0;
+      background: var(--gradient-primary);
+      color: var(--color-white);
+      padding: 1rem;
+      text-align: center;
     }
 
     h1, h2, h3, h4, h5, h6 {
       font-weight: 600;
     }
 
-    .header, .footer {
+    .header {
       background: var(--gradient-primary);
       color: var(--color-white);
       padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .header-title {
@@ -56,6 +76,7 @@
       border-radius: 1rem;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       border: 1px solid var(--color-neutro);
+      margin-bottom: 1.5rem;
     }
 
     .status-box {
@@ -97,6 +118,30 @@
       margin-top: 1rem;
     }
 
+    /* Estilos para la sección de alertas */
+    #alertas-panel {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    #alertas-list {
+      list-style: none;
+      padding-left: 0;
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid var(--color-neutro);
+      border-radius: 8px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    #alertas-list li {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.9rem;
+    }
+    #alertas-list li:last-child {
+      border-bottom: none;
+    }
+
     /* Status message colors */
     .text-info { color: #1976d2; }
     .text-success { color: #388e3c; }
@@ -107,7 +152,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
 </head>
 <body>
-  <header class="header d-flex justify-content-between align-items-center">
+  <header class="header">
     <div class="header-title">
       <img src="/static/img/Kruntur_Mobility.png" alt="Logo" />
       <h3>Kuntur - Movilidad</h3>
@@ -141,11 +186,19 @@
             <div id="map"></div>
           </div>
         </div>
+
+        <!-- NUEVA SECCIÓN ALERTAS -->
+        <div class="camera-panel" id="alertas-panel">
+          <h6 class="mb-3">Registros de Alertas</h6>
+          <ul id="alertas-list">
+            <li>No hay alertas registradas</li>
+          </ul>
+        </div>
       </div>
     </div>
   </main>
 
-  <footer class="footer d-flex justify-content-center">
+  <footer class="footer">
     <p class="m-0">KUNTUR 2025 ©</p>
   </footer>
 
@@ -154,7 +207,7 @@
     const recordBtn = document.getElementById("recordBtn");
     const status = document.getElementById("status");
 
-    const ipCamUrl = "http://192.168.137.55:8080/video";
+    const ipCamUrl = "http://192.168.100.204:8080/video";
     img.src = ipCamUrl;
 
     const canvas = document.createElement("canvas");
@@ -266,10 +319,10 @@
 
     recordBtn.onclick = toggleRecording;
 
+    // Inicialización mapa Leaflet y geolocalización
     window.onload = () => {
       logStatus("Cámara activa", "success");
 
-      // Mapa con Leaflet
       const map = L.map('map').setView([0, 0], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
@@ -287,6 +340,31 @@
       } else {
         console.error("Geolocalización no soportada");
       }
+
+      // Cargar alertas desde backend
+      fetch("http://localhost:8086/alertas/")
+        .then(response => response.json())
+        .then(data => {
+          const alertasList = document.getElementById("alertas-list");
+          alertasList.innerHTML = "";
+          if (!data || data.length === 0) {
+            alertasList.innerHTML = "<li>No hay alertas registradas</li>";
+            return;
+          }
+          data.forEach(alerta => {
+            // Aquí puedes adaptar qué campos mostrar según tu estructura en MongoDB
+            const fecha = alerta.fecha ? new Date(alerta.fecha).toLocaleString() : "Fecha desconocida";
+            const mensaje = alerta.mensaje || alerta.descripcion || JSON.stringify(alerta);
+            const li = document.createElement("li");
+            li.textContent = `${fecha} - ${mensaje}`;
+            alertasList.appendChild(li);
+          });
+        })
+        .catch(err => {
+          const alertasList = document.getElementById("alertas-list");
+          alertasList.innerHTML = "<li>Error cargando alertas</li>";
+          console.error("Error cargando alertas:", err);
+        });
     };
   </script>
 </body>
